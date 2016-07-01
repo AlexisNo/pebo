@@ -2,45 +2,47 @@
 
 // Let's create a Pebo event emitter
 const Pebo = require('..');
-class MyEmitter extends Pebo {}
-const myEmitter = new MyEmitter();
+class PizzaMaker extends Pebo {}
+const pizzaMaker = new PizzaMaker();
 
 // We associate various listener to our emitter
 // One of them execute asynchronous code
-myEmitter.when('event', function a(primitive, collector) {
-  console.log('Inside listener A');
-  primitive += 'a';
-  collector.push('a');
+pizzaMaker.when('margherita', function addMozzarella(primitive, collector) {
+  console.log('Inside listener addMozzarella');
+  primitive += ' mozzarella';
+  collector.push('mozzarella');
   return Promise.resolve([primitive, collector]);
 });
 
-myEmitter.when('event', function c(primitive, collector) {
-  console.log('Inside listener B');
+pizzaMaker.when('margherita', function addTomato(primitive, collector) {
+  console.log('Inside listener addTomato');
   return new Promise((resolve, reject) => {
     setTimeout(function() {
-      console.log('Inside listener B (asynchronous)');
-      primitive += 'b';
-      collector.push('b');
+      console.log('Inside listener addTomato (asynchronous)');
+      primitive += ' tomato';
+      collector.push('tomatoes');
       resolve([primitive, collector]);
     }, 10);
   });
 });
 
-myEmitter.when('event', function b(primitive, collector) {
-  console.log('Inside listener C');
-  primitive += 'c';
-  collector.push('c');
+pizzaMaker.when('margherita', function addBasil(primitive, collector) {
+  console.log('Inside listener addBasil');
+  primitive += 'basil';
+  collector.push('basil');
   return Promise.resolve([primitive, collector]);
 });
 
 // We prepare some data that will be passed to the event
-const primitiveType = 'my-string-';
-const objectType = [];
+const ingredients = 'Ingredients: ';
+const pizza = [];
 
-// Emit!!!
+// Emit a pizza!
 console.log('Before emitting');
-myEmitter.fire('event', primitiveType, objectType)
+pizzaMaker.fire('margherita', ingredients, pizza)
 .then(args => {
   // Let's see what we've got now
-  console.log('After emitting \n  ', args[0], args[1]);
+  const ingredients = args[0];
+  const pizza = args[1];
+  console.log(['After emitting', ingredients, JSON.stringify(pizza)].join('\n  -'));
 });

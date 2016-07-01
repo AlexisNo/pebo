@@ -2,67 +2,76 @@
 
 // Let's create a Pebo event emitter
 const Pebo = require('..');
-class MyEmitter extends Pebo {}
-const myEmitter = new MyEmitter();
+class PizzaMaker extends Pebo {}
+const pizzaMaker = new PizzaMaker();
 
 // We associate various listener to our emitter
-// All of them execute asynchronous code
-myEmitter.when('event', function a(primitive, collector) {
+// Some of them execute asynchronous code
+pizzaMaker.when('regina', function addMozzarella(primitive, collector) {
+  console.log('Inside listener addMozzarella');
+  primitive += ' mozzarella';
+  collector.push('mozzarella');
+  return Promise.resolve([primitive, collector]);
+});
+
+pizzaMaker.when('margherita', function addTomato(primitive, collector) {
+  console.log('Inside listener addTomato');
   return new Promise((resolve, reject) => {
     setTimeout(function() {
-      console.log('Inside async listener A');
-      primitive += 'a';
-      collector.push('a');
+      console.log('Inside listener addTomato (asynchronous)');
+      primitive += ' tomato';
+      collector.push('tomatoes');
       resolve([primitive, collector]);
-    }, 100);
+    }, 300);
   });
 });
 
-myEmitter.when('event', function c(primitive, collector) {
+pizzaMaker.when('regina', function addHam(primitive, collector) {
   return new Promise((resolve, reject) => {
     setTimeout(function() {
-      console.log('Inside async listener B');
-      primitive += 'b';
-      collector.push('b');
+      console.log('Inside async listener addHam');
+      primitive += 'ham';
+      collector.push('ham');
       resolve([primitive, collector]);
     }, 500);
   });
 });
 
-myEmitter.when('event', function b(primitive, collector) {
+pizzaMaker.when('regina', function addMushrooms(primitive, collector) {
   return new Promise((resolve, reject) => {
     setTimeout(function() {
-      console.log('Inside async listener C');
-      primitive += 'c';
-      collector.push('c');
+      console.log('Inside async listener addMushrooms');
+      primitive += 'mushrooms';
+      collector.push('mushrooms');
       resolve([primitive, collector]);
-    }, 200);
+    }, 400);
   });
 });
 
 // We prepare some data that will be passed to the event
-let primitiveType = 'my-string-';
-let objectType = [];
+let ingredients = 'Ingredients: ';
+let pizza = [];
 
 // Emit the event
 console.log('Before emitting');
 console.time('fire');
-myEmitter.fire('event', primitiveType, objectType)
+pizzaMaker.fire('regina', ingredients, pizza)
 .then(args => {
   // Let's see what we've got now
-  console.log('After emitting \n  ', args);
+  console.log(['After emitting', args[0], JSON.stringify(args[1])].join('\n  -'));
   console.timeEnd('fire');
+  console.log();
 
   // Reinitialize data passed to the event
-  primitiveType = 'my-string-';
-  objectType = [];
+  ingredients = 'Ingredients: ';
+  pizza = [];
   // Emit the event and execute listeners concurrently
   console.log('Before emitting concurrently');
   console.time('fireConcurrently');
-  myEmitter.fireConcurrently('event', primitiveType, objectType)
+  pizzaMaker.fireConcurrently('regina', ingredients, pizza)
   .then(args => {
     // Let's see what we've got now
-    console.log('After emitting \n  ', args);
+    console.log(['After emitting', args[0], JSON.stringify(args[1])].join('\n  -'));
     console.timeEnd('fireConcurrently');
   });
 });

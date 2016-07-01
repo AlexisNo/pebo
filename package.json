@@ -25,5 +25,8 @@
   "bugs": {
     "url": "https://github.com/AlexisNo/pebo/issues"
   },
-  "homepage": "https://github.com/AlexisNo/pebo#readme"
+  "homepage": "https://github.com/AlexisNo/pebo#readme",
+  "devDependencies": {
+    "bluebird": "^3.4.1"
+  }
 }
