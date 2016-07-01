@@ -1,0 +1,29 @@
+{
+  "name": "pebo",
+  "version": "0.0.0",
+  "description": "Pebo aims to provide an asynchronous friendly event mechanism",
+  "main": "index.js",
+  "directories": {
+    "example": "examples"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AlexisNo/pebo.git"
+  },
+  "keywords": [
+    "event",
+    "emitter",
+    "promise",
+    "asynchronous",
+    "async"
+  ],
+  "author": "Alexis Hénaut",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/AlexisNo/pebo/issues"
+  },
+  "homepage": "https://github.com/AlexisNo/pebo#readme"
+}
