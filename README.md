@@ -66,7 +66,7 @@ passes object arguments by reference, we are be able to see the modifications ap
 we cannot know when it will be available.
 
 Let's write a simple example. First, we write a node module containing actions needed to make a pizza `margherita` or `regina`. Every action logs a message so
-we can see when it is executed. Theses messages also display the property `name` that will be set on the `EventEmitter`, so we can verify that the `this` keyword
+we can see when it is executed. These messages also display the property `name` that will be set on the `EventEmitter`, so we can verify that the `this` keyword
 is set to reference the `EventEmitter` like described in [Node.js documentation](https://nodejs.org/api/events.html#events_passing_arguments_and_this_to_listeners).
 
 The event that will trigger these functions has two arguments:
