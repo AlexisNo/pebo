@@ -17,6 +17,10 @@ function Pebo() {
   this.events = [];
 }
 
+Pebo.setPromise = function setPromise(p) {
+  Promise = p;
+};
+
 /**
  * Add a listener
  * @param {string} eventName - The name of the event
@@ -25,7 +29,7 @@ function Pebo() {
  */
 Pebo.prototype.when = function when(eventName, fn) {
   this.events[eventName] = this.events[eventName] || [];
-  this.events[eventName].push(fn);
+  this.events[eventName].push(fn.bind(this));
   return this;
 };
 
@@ -58,11 +62,11 @@ Pebo.prototype.fire = function fire() {
       });
     }
 
-    const p = this.events[eventName][i].apply(this.events[eventName][i], args);
+    const p = Promise.resolve(this.events[eventName][i].apply(this.events[eventName][i], args));
     // return this.events[eventName][i].apply(this.events[eventName][i], args)
     return p.then(function propagateArguments() {
-      // We cannot use the () => {} notation here because we use `arguments`
-      // When the plugin hook has been executed, we move to the next plugin (recursivity)
+      // We cannot use the "=>" notation here because we use `"arguments"
+      // When an event listener has been executed, we move to the next one (recursivity)
       return callListenersSequentially.bind(this)(i + 1, arguments[0]);
     }.bind(this));
   };
@@ -91,7 +95,7 @@ Pebo.prototype.fireConcurrently = function fireConcurrently() {
 
   return Promise.all(this.events[eventName].map(fn => fn.apply(this, args)))
   .then(function(responses) {
-    return Promise.resolve(responses[0]);
+    return Promise.resolve(args);
   });
 };
 

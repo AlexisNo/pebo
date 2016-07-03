@@ -1,9 +1,10 @@
 {
   "plugins": {
     "remark-lint": {
-        "maximum-line-length": 160,
-        "maximum-heading-length": 80,
-        "list-item-spacing": false
+      "no-heading-punctuation": false,
+      "maximum-line-length": 160,
+      "maximum-heading-length": 80,
+      "list-item-spacing": false
     }
   }
 }

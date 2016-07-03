@@ -1,268 +1,313 @@
-# Pebo
+Pebo
+===
 
-Pebo aims to provide an asynchronous friendly event mechanism.
+Pebo is a small JavaScript module that aims to provide an asynchronous friendly event mechanism.
 
-## How event emitters work
+Usage
+---
 
-Event emitters call listener functions synchronously. We can pass an object as an argument to an event
-and
-what if I want to wait for the result of an asynchronous operation?
-
-Let's write a simple example:
+```bash
+npm install pebo --save
+```
 
 ```javascript
-'use strict';
+const Pebo = require('pebo');
 
-// Let's create an event emitter like in node's documentation
+// Create a Pebo event emitter
+emitter = new Pebo();
+
+// add listeners to an event
+// a listener must return the event arguments (eventually modified) in an Array
+emitter.when('myEvent', (arg1, arg2) => {
+  modifyArgsIfYouWantTo(arg1, arg2);
+  return [arg1, arg2];
+});
+
+// a listener can execute asynchronous code an return the Promise of an array containing the event arguments (eventually modified)
+emitter.when('myEvent', (arg1, arg2) => {
+  return doSomeAsyncStuffThatReturnsAPromiseOfArgs(arg1, arg2)
+});
+
+eventEmitter.fire('myEvent')
+.then(args => {
+  // retrieve the arguments modified by sync or async listeners
+  console.log(args);
+  // [modifiedArg1, modifiedArg2]
+}
+```
+
+Why would I want to use Pebo instead of EventEmitter?
+---
+
+That's a good question. Thanks for asking it! It depends on what you want to do with events.
+
+Pebo is inspired by Node.js EventListener but Functions attached to an event must return the event's arguments (or a Promise of the event's arguments)
+eventually modified. Thereby, events execution can be chained even if they run asynchronous code and the portion of code firing an event can have access
+to the modified arguments.
+
+The following sections use the example of a `Pizzaiolo` event emitter that makes pizzas. When a pizzaiolo "emits" a certain type of pizza, some actions
+must be called like `addMozzarella()`, `addTomatoes()`, `addHam()` etc. The order of execution of these actions may be important. Some actions may execute
+asynchronous code.
+
+### How EventEmitter work
+
+From [the Node.js documentation about events](https://nodejs.org/api/events.html)
+
+>>>When the EventEmitter object emits an event, all of the Functions attached to that specific event are called synchronously.
+>>>Any values returned by the called listeners are ignored and will be discarded.
+
+So, it is not possible to access values returned by event listeners. But it is possible to pass an object as an argument to an event, and because JavaScript
+passes object arguments by reference, we are be able to see the modifications applied on this object. But if the modification is performed asynchronously,
+we cannot know when it will be available.
+
+Let's write a simple example. First, we write a node module containing actions needed to make a pizza `margherita` or `regina`. Every action logs a message so
+we can see when it is executed. Theses messages also display the property `name` that will be set on the `EventEmitter`, so we can verify that `this` keyword
+set to reference the `EventEmitter` like described in [Node.js documentation](https://nodejs.org/api/events.html#events_passing_arguments_and_this_to_listeners).
+
+The event that will trigger these functions has two arguments:
+
+*   A string that we will concatenate with the name of the ingredient of the action
+*   An array that represents the pizza and contain the arguments.
+
+```javascript
+module.exports = {
+  addMozzarella(ingredients, pizza) {
+    console.log('Inside ' + this.name + ' action addMozzarella()');
+    ingredients += ' mozzarella';
+    pizza.push('mozzarella');
+  },
+  addTomatoes(ingredients, pizza) {
+    setTimeout(() => {
+      console.log('Inside ' + this.name + ' async action addTomatoes()');
+      ingredients += ' tomato';
+      pizza.push('tomatoes');
+    }, 10);
+  },
+  addBasil(ingredients, pizza) {
+    console.log('Inside ' + this.name + ' action addBasil()');
+    ingredients += 'basil';
+    pizza.push('basil');
+  },
+  addHam(ingredients, pizza) {
+    setTimeout(() => {
+      console.log('Inside ' + this.name + ' async action addHam()');
+      ingredients += 'ham';
+      pizza.push('ham');
+    }, 30);
+  },
+  addMushrooms(ingredients, pizza) {
+    setTimeout(() => {
+      console.log('Inside ' + this.name + ' async action addMushrooms()');
+      ingredients += 'mushrooms';
+      pizza.push('mushrooms');
+    }, 20);
+  }
+};
+```
+
+We implemented all necessary actions to make margheritas and reginas. Let's write a `Pizzaiolo` EventEmitter that will call these actions when it makes/emit
+a pizza.
+
+```javascript
+const actions = require('./event-emitter-actions');
+
+// Let's create an event emitter
 const EventEmitter = require('events');
-class MyEmitter extends EventEmitter {}
-const myEmitter = new MyEmitter();
+class Pizzaiolo extends EventEmitter {}
+const mario = new Pizzaiolo();
+mario.name = 'Mario';
 
 // We associate various listener to our emitter
 // One of them execute asynchronous code
-myEmitter.on('event', function a(primitive, collector) {
-  primitive += 'a';
-  collector.push('a');
-  console.log('Inside the A listener');
-});
-
-myEmitter.on('event', function c(primitive, collector) {
-  console.log('Inside the B listener');
-  setTimeout(function () {
-    primitive += 'b';
-    collector.push('b');
-    console.log('Inside the B listener (asynchronous)');
-  }, 10);
-});
-
-myEmitter.on('event', function b(primitive, collector) {
-  primitive += 'c';
-  collector.push('c');
-  console.log('Inside the C listener');
-});
+mario.on('margherita', actions.addMozzarella)
+     .on('margherita', actions.addTomatoes)
+     .on('margherita', actions.addBasil);
 
 // We prepare some data that will be passed to the event
-const primitiveType = 'my-string-';
-const objectType = [];
+const ingredients = 'Ingredients: ';
+const pizza = [];
 
-// Emit!!!
+// Emit a pizza!
 console.log('Before emitting');
-myEmitter.emit('event', primitiveType, objectType);
+mario.emit('margherita', ingredients, pizza);
 
 // Let's see what we've got now
-console.log('After emitting \n  ', primitiveType, objectType);
+console.log(['After emitting', ingredients, JSON.stringify(pizza)].join('\n  -'));
 
-// Lets's check again a little later
-setTimeout(function () {
-  console.log('Inside the asynchronous function \n  ', primitiveType, objectType);
-}, 0);
-
-// Lets's check again, again a little later
-setTimeout(function () {
-  console.log('Inside another asynchronous function \n  ', primitiveType, objectType);
-}, 10);
+// Let's check again a little later
+setTimeout(function() {
+  console.log(['Later after emitting', ingredients, JSON.stringify(pizza)].join('\n  -'));
+}, 100);
 ```
 
-Here is the result of the execution:
-
-```text
-Before emitting
-Inside listener A
-Inside listener B
-Inside listener C
-After emitting
-  Parameters: my-string- [ 'a', 'c' ]
-Inside an asynchronous function
-  Parameters: my-string- [ 'a', 'c' ]
-Inside listener B (asynchronous)
-Inside another asynchronous function
-  Parameters: my-string- [ 'a', 'c', 'b' ]
-```
-
-Let's comment it ...
+Here is the result of the execution with some comments:
 
 ```text
 Before emitting
 
-Inside listener A                           // OK, listeners are listening! Functions are called
-Inside listener B
-Inside listener C
+Inside Mario action addMozzarella()       // Actions are called and the `this` keyword references the Pizzaiolo/EventEmitter
+Inside Mario action addBasil()            // The log of addTomatoes() is missing here because it is written in an asynchronous call
 
-After emitting                              // All listener have been executed synchronously
-                                            // but the asynchronous call from listener B has not been executed yet
+After emitting                            // The code written after the emission is executed before the addTomatoes() action finishes
+  -Ingredients:                           // The string argument does not contain the modifications because JavaScript passed a copy of it to the listeners
+  -["mozzarella","basil"]                 // The Array argument does contain the modifications because JavaScript passed its reference to the listeners
 
-  Parameters: my-string- [ 'a', 'c' ]       // The first argument passed to the event is a string, it has been passed
-                                            // the listeners "by value" and we do not see changes done in the listeners
-                                            // The second argument is a array, so its reference has been passed to
-                                            // the listeners and we can see changes applied by the listeners
+Inside Mario async action addTomatoes()   // Now the asynchronous code from addTomatoes() is executed
 
-Inside the asynchronous function            // The first setTimeout() call is executed
-  Parameters: my-string- [ 'a', 'c' ]       // The data didn't change
-
-Inside the B listener (asynchronous)        // The asynchronous code in the "c" listener is executed now ...
-
-Inside another asynchronous function        // The last setTimeout() call is executed
-  Parameters: my-string- [ 'a', 'c', 'b' ]  // Now we can see the changes done by the "B" listener
-                                            // but we where never informed about when it happened
+Later after emitting                      // The modification from addTomatoes() is finally applied to the pizza Array
+  -Ingredients:                           // but we cannot know when it happened and if it have been successfully executed
+  -["mozzarella","basil","tomatoes"]
 ```
 
-## How Pebo works
+### How Pebo works
 
-Pebo propose to implement an event emitter based on promises to have access to the data transformed by listeners.
-
-Let's rewrite our example with pebo:
+Let's rewrite our example with pebo. We have a small modification to apply to our actions: returning the modified arguments or a Promise of these arguments.
 
 ```javascript
+module.exports = {
+  // Synchronous operation
+  addMozzarella(ingredients, pizza) {
+    console.log('Inside ' + this.name + ' action addMozzarella()');
+    ingredients += ' - mozzarella';
+    pizza.push('mozzarella');
+    return [ingredients, pizza];
+  },
+  // Asynchronous operation
+  addTomatoes(ingredients, pizza) {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        console.log('Inside ' + this.name + ' async action addTomatoes()');
+        ingredients += ' - tomato';
+        pizza.push('tomatoes');
+        resolve([ingredients, pizza]);
+      }, 100);
+    });
+  },
+  // Synchronous operation
+  addBasil(ingredients, pizza) {
+    console.log('Inside ' + this.name + ' action addBasil()');
+    ingredients += ' - basil';
+    pizza.push('basil');
+    // You can simply return the "argument" keyword if you wish but modifying primitive arguments like strings and integers will not work
+    // return arguments;
+    return [ingredients, pizza];
+  },
+  // Long Asynchronous operation
+  addHam(ingredients, pizza) {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        console.log('Inside ' + this.name + ' async action addHam()');
+        ingredients += ' - ham';
+        pizza.push('ham');
+        resolve([ingredients, pizza]);
+      }, 200);
+    });
+  },
+  // Asynchronous operation
+  addMushrooms(ingredients, pizza) {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        console.log('Inside ' + this.name + ' async action addMushrooms()');
+        ingredients += ' - mushrooms';
+        pizza.push('mushrooms');
+        resolve([ingredients, pizza]);
+      }, 100);
+    });
+  }
+};
+```
+
+Let's rewrite `Pizzaiolo` with Pebo. To avoid confusion, the equivalent of `on()` and `emit()` methods from EventEmitter are respectively named `when`
+and `fire`.
+
+```javascript
+const actions = require('./pebo-actions');
+
 // Let's create a Pebo event emitter
 const Pebo = require('pebo');
-class MyEmitter extends Pebo {}
-const myEmitter = new MyEmitter();
+class Pizzaiolo extends Pebo {}
+const mario = new Pizzaiolo();
+mario.name = 'Mario';
 
 // We associate various listener to our emitter
 // One of them execute asynchronous code
-myEmitter.when('event', function a(primitive, collector) {
-  console.log('Inside listener A');
-  primitive += 'a';
-  collector.push('a');
-  return Promise.resolve([primitive, collector]);
-});
+mario.when('margherita', actions.addMozzarella)
+     .when('margherita', actions.addTomatoes)
+     .when('margherita', actions.addBasil);
 
-myEmitter.when('event', function c(primitive, collector) {
-  console.log('Inside listener B');
-  return new Promise((resolve, reject) => {
-    setTimeout(function() {
-      console.log('Inside listener B (asynchronous)');
-      primitive += 'b';
-      collector.push('b');
-      resolve([primitive, collector]);
-    }, 10);
-  });
-});
-
-myEmitter.when('event', function b(primitive, collector) {
-  console.log('Inside listener C');
-  primitive += 'c';
-  collector.push('c');
-  return Promise.resolve([primitive, collector]);
-});
-
-// We prepare some data that will be passed to the event
-const primitiveType = 'my-string-';
-const objectType = [];
-
-// Emit!!!
+// Emit a pizza!
 console.log('Before emitting');
-myEmitter.fire('event', primitiveType, objectType)
+mario.fire('margherita', 'Ingredients:', [])
 .then(args => {
   // Let's see what we've got now
-  console.log('After emitting \n  ', args[0], args[1]);
+  console.log(['After emitting', args[0], JSON.stringify(args[1])].join('\n  -'));
 });
-```
-
-Here is the result of the execution:
-
-```text
-Before emitting
-Inside listener A
-Inside listener B
-Inside listener B (asynchronous)
-Inside listener C
-After emitting
-   my-string-abc [ 'a', 'b', 'c' ]
 
 ```
 
-Let's comment it ...
+Here is the result of the execution with some comments:
 
 ```text
 Before emitting
 
-Inside listener A                   // OK, listeners are listening! Functions are called
-Inside listener B
-Inside listener B (asynchronous)    // The asynchronous function inside listener B is executed  
-Inside listener C                   // before the code in listener C
+Inside Mario action addMozzarella()             // Actions are called and the `this` keyword references the Pizzaiolo/Pebo event emitter
+Inside Mario async action addTomatoes()         // The log of addTomatoes() appears because Pebo is using Promises to execute asynchronous functions sequentially
+Inside Mario action addBasil()
 
-After emitting
-   my-string-abc [ 'a', 'b', 'c' ]  // We can see, changes done by all listeners
-                                    // We even can see modifications done on the primitive argument
-                                    // because its value has been copied between each promise
+After emitting                                  // We retrieved the margherita with all its ingredients as soon as it's ready
+  -Ingredients: - mozzarella - tomato - basil   // We even have the correct string of ingredients because modifications have been copied for each successive action
+  -["mozzarella","tomatoes","basil"]
 ```
 
-## Alternative usage
+### Better performance if the order of execution does not matter
 
-Because Pebo execute listeners sequentially, the time to retrieve the data modified may be long.
-Indeed, if an event has 3 listeners that execute asynchronous operations that last 100, 200 and 800 ms,
-the result will be available only after 800 ms minimum.
+Because Pebo execute listener Functions sequentially, the time to retrieve the data modified may be long.
+Indeed, if an event has 3 listeners that execute asynchronous operations that last 100, 200 and 400 ms, the result will be available only after 700 ms minimum.
 
-If the order of execution does not matter, it would be more efficient to execute listeners concurrently.
-Pebo comes with another method to fire these events:  `fireConcurrently()`.
+If the order of execution does not matter, it would be more efficient to execute listeners concurrently. That is why Pebo comes with a second method to fire
+events: `fireConcurrently()`.
 
-Let's write another example inspired by the first one:
+Note that in this case, the listeners do not need to return the event arguments or a Promise of the event arguments. Indeed, Pebo is only calling
+`Promise.all()` and returning a Promise of the event arguments.
+
+Let's write another example, but this time we will log execution time our Pizzaiolo will prepare two pizzas `regina`:
+
+*   for the first one, he will add ingredients one after another
+*   for the second one, he will not care about the order
 
 ```javascript
+const actions = require('./pebo-actions');
+
 // Let's create a Pebo event emitter
-const Pebo = require('..');
-class MyEmitter extends Pebo {}
-const myEmitter = new MyEmitter();
+const Pebo = require('pebo');
+class Pizzaiolo extends Pebo {}
+const mario = new Pizzaiolo();
+mario.name = 'Mario';
 
 // We associate various listener to our emitter
-// All of them execute asynchronous code
-myEmitter.when('event', function a(primitive, collector) {
-  return new Promise((resolve, reject) => {
-    setTimeout(function() {
-      console.log('Inside async listener A');
-      primitive += 'a';
-      collector.push('a');
-      resolve([primitive, collector]);
-    }, 100);
-  });
-});
+// Some of them execute asynchronous code
+mario.when('regina', actions.addMozzarella)
+     .when('regina', actions.addTomatoes)
+     .when('regina', actions.addHam)
+     .when('regina', actions.addMushrooms);
 
-myEmitter.when('event', function c(primitive, collector) {
-  return new Promise((resolve, reject) => {
-    setTimeout(function() {
-      console.log('Inside async listener B');
-      primitive += 'b';
-      collector.push('b');
-      resolve([primitive, collector]);
-    }, 500);
-  });
-});
-
-myEmitter.when('event', function b(primitive, collector) {
-  return new Promise((resolve, reject) => {
-    setTimeout(function() {
-      console.log('Inside async listener C');
-      primitive += 'c';
-      collector.push('c');
-      resolve([primitive, collector]);
-    }, 200);
-  });
-});
-
-// We prepare some data that will be passed to the event
-let primitiveType = 'my-string-';
-let objectType = [];
-
-// Emit the event
+// Emit a pizza!
 console.log('Before emitting');
 console.time('fire');
-myEmitter.fire('event', primitiveType, objectType)
+mario.fire('regina', 'Ingredients:', [])
 .then(args => {
   // Let's see what we've got now
-  console.log('After emitting \n  ', args);
+  console.log(['After emitting', args[0], JSON.stringify(args[1])].join('\n  -'));
   console.timeEnd('fire');
+  console.log();
 
-  // Reinitialize data passed to the event
-  primitiveType = 'my-string-';
-  objectType = [];
   // Emit the event and execute listeners concurrently
   console.log('Before emitting concurrently');
   console.time('fireConcurrently');
-  myEmitter.fireConcurrently('event', primitiveType, objectType)
+  mario.fireConcurrently('regina', 'Ingredients:', [])
   .then(args => {
     // Let's see what we've got now
-    console.log('After emitting concurrently\n  ', args);
+    console.log(['After emitting', args[0], JSON.stringify(args[1])].join('\n  -'));
     console.timeEnd('fireConcurrently');
   });
 });
@@ -271,47 +316,93 @@ myEmitter.fire('event', primitiveType, objectType)
 Here is the result of the execution:
 
 ```text
-Before emitting
-Inside async listener A
-Inside async listener B
-Inside async listener C
-After emitting
-   [ 'my-string-abc', [ 'a', 'b', 'c' ] ]
-fire: 811.989ms
-Before emitting concurrently
-Inside async listener A
-Inside async listener C
-Inside async listener B
-After emitting
-   [ 'my-string-a', [ 'a', 'c', 'b' ] ]
-fireConcurrently: 501.250ms
+Before emitting                                           // The duration of each action is estimated based on the setTimeout() duration parameter
 
+Inside Mario action addMozzarella()                       // last ~0 ms
+Inside Mario async action addTomatoes()                   // last ~100 ms
+Inside Mario async action addHam()                        // last ~200 ms
+Inside Mario async action addMushrooms()                  // last ~100 ms
+
+After emitting
+  -Ingredients: - mozzarella - tomato - ham - mushrooms   // We received our pizza like previously, except that it's a regina this time
+  -["mozzarella","tomatoes","ham","mushrooms"]            // The pizzaiollo last ~400 ms to make it, it is the sum of all actions durations
+fire: 408ms
+
+Before emitting concurrently
+
+Inside Mario action addMozzarella()                       // last ~0 ms
+Inside Mario async action addTomatoes()                   // last ~100 ms
+Inside Mario async action addMushrooms()                  // last ~200 ms
+Inside Mario async action addHam()                        // last ~100 ms
+
+After emitting
+  -Ingredients:                                           // this time, The string argument does not contain the modifications like for the EventEmitter example
+  -["mozzarella","tomatoes","mushrooms","ham"]            // the ingredients were not necessarily added in the right order, but the pizza was prepared much more faster
+fireConcurrently: 202ms                                   // The pizzaiollo last ~200 ms to make it, it is the duration of the longest action
 ```
 
-Let's comment it ...
+Which Promise implementation does Pebo use?
+---
+
+Pebo come with 0 dependencies, but you can use it with your favorite Promise library using `Pebo.setPromise(myPromiseLib);`. If you want to use `bluebird`
+for example:
+
+```javascript
+const bluebird = require('bluebird');
+const actions = require('./pebo-actions');
+
+// Let's create a Pebo event emitter
+const Pebo = require('pebo');
+Pebo.setPromise(bluebird);
+class Pizzaiolo extends Pebo {}
+const mario = new Pizzaiolo();
+mario.name = 'Mario';
+
+// We associate various listener to our emitter
+mario.when('margherita', actions.addMozzarella)
+     .when('margherita', actions.addTomatoes)
+     .when('margherita', actions.addBasil)
+     .when('regina', actions.addMozzarella)
+     .when('regina', actions.addTomatoes)
+     .when('regina', actions.addHam)
+     .when('regina', actions.addMushrooms);
+
+// Emit a pizza!
+console.log('Before emitting');
+mario.fire('margherita', 'Ingredients:', [])
+.spread((ingredients, pizza) => {
+  /* *******************************************************************************************************
+   * Promise.spread() is not implemented in ES6 Promises, but you can use it by injecting bluebird in Pebo
+   * *******************************************************************************************************/
+  console.log(['After emitting', ingredients, JSON.stringify(pizza)].join('\n  -'));
+  // Emit another pizza!
+  return mario.fireConcurrently('regina', 'Ingredients:', []);
+})
+.spread((ingredients, pizza) => {
+  console.log(['After emitting', ingredients, JSON.stringify(pizza)].join('\n  -'));
+});
+```
+
+Here is the result of the execution, but I am too lazy to comment it again ...
 
 ```text
-Before emitting                             // First, we emit the event using fire()
-                                            // Listeners will be executed sequentially
-Inside async listener A                     // last 100ms
-Inside async listener B                     // last 500ms
-Inside async listener C                     // last 200ms
+Before emitting
+Inside Mario action addMozzarella()
+Inside Mario async action addTomatoes()
+Inside Mario action addBasil()
 After emitting
-   [ 'my-string-abc', [ 'a', 'b', 'c' ] ]
-fire: 811.989ms                             // The duration of the execution is approximately
-                                            // the sum of all listener's execution durations
-
-
-Before emitting concurrently                // Now, we emit the event using fireConcurrently()
-                                            // Listeners will be executed concurrently
-Inside async listener A                     // last 100ms
-Inside async listener C                     // last 200ms
-Inside async listener B                     // last 500ms
+  -Ingredients: - mozzarella - tomato - basil
+  -["mozzarella","tomatoes","basil"]
+Inside Mario action addMozzarella()
+Inside Mario async action addTomatoes()
+Inside Mario async action addMushrooms()
+Inside Mario async action addHam()
 After emitting
-   [ 'my-string-a', [ 'a', 'c', 'b' ] ]     // The content of the primitive argument is no more reliable
-                                            // It has the modification of only one of the listeners
-                                            // The content of the second argument correct, but this time
-                                            // the alteration of listener C has been applied before liestener B  
-fireConcurrently: 501.250ms                 // The duration of the execution is approximately
-                                            // the duration of the longest listener
+  -Ingredients:
+  -["mozzarella","tomatoes","mushrooms","ham"]
 ```
+
+What's next?
+---
+
+Pebo will offer [more features from `EventEmitter`](https://nodejs.org/api/events.html#events_passing_arguments_and_this_to_listeners)
