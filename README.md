@@ -48,8 +48,8 @@ Why would I want to use Pebo instead of EventEmitter?
 That's an excellent question. Thanks for asking it! It depends on what you want to do with events.
 
 Pebo is inspired by Node.js EventListener but Functions attached to an event must return the event's arguments (or a Promise of the event's arguments)
-eventually modified. Thereby, events execution can be chained even if they run asynchronous code and the portion of code firing an event can have access
-to the modified arguments.
+eventually modified. Thereby, **listeners executions can be chained even if they run asynchronous code** and the portion of code firing an event can have
+**access to the modified arguments**.
 
 The following sections use the example of a `Pizzaiolo` event emitter that makes pizzas. When a pizzaiolo "emits" a certain type of pizza, some actions
 must be called like `addMozzarella()`, `addTomatoes()`, `addHam()` etc. The order of execution of these actions may be important. Some actions may execute
@@ -62,8 +62,8 @@ From [the Node.js documentation about events](https://nodejs.org/api/events.html
 >When the EventEmitter object emits an event, all of the Functions attached to that specific event are called synchronously.
 >Any values returned by the called listeners are ignored and will be discarded.
 
-So, it is not possible to access values returned by event listeners. But it is possible to pass an object as an argument to an event, and because JavaScript
-passes object arguments by reference, we are be able to see the modifications applied on this object. But if the modification is performed asynchronously,
+So, it is not possible to access values returned by event listeners. But *it is possible to pass an object as an argument to an event*, and because JavaScript
+passes object arguments by reference, we are be able *to see the modifications applied on this object*. But if the modification is performed *asynchronously*,
 we cannot know when it will be available.
 
 Let's write a simple example. First, we write a node module containing actions needed to make a pizza `margherita` or `regina`. Every action logs a message so
@@ -111,7 +111,7 @@ module.exports = {
 };
 ```
 
-We implemented all necessary actions to make margheritas and reginas. Let's write a `Pizzaiolo` EventEmitter that will call these actions when it makes/emit
+We implemented all necessary actions to make margheritas and reginas. Let's write a `Pizzaiolo` EventEmitter that will call these actions when it makes/emits
 a pizza.
 
 ```javascript
@@ -167,7 +167,7 @@ Later after emitting                      // The modification from addTomatoes()
 
 ### How Pebo works
 
-Let's rewrite our example with pebo. We have a small modification to apply to our actions: returning the modified arguments or a Promise of these arguments.
+Let's rewrite our example with Pebo. We have a small modification to apply to our actions: **returning the modified arguments or a Promise of these arguments**.
 
 ```javascript
 module.exports = {
@@ -270,13 +270,13 @@ After emitting                                  // We retrieved the margherita w
 Because Pebo execute listener Functions sequentially, the time to retrieve the data modified may be long.
 Indeed, if an event has 3 listeners that execute asynchronous operations that last 100, 200 and 400 ms, the result will be available only after 700 ms minimum.
 
-If the order of execution does not matter, it would be more efficient to execute listeners concurrently. That is why Pebo comes with a second method to fire
+If the order of execution does not matter, **it would be more efficient to execute listeners concurrently**. That is why Pebo comes with a second method to fire
 events: `fireConcurrently()`.
 
 Note that in this case, the listeners do not need to return the event arguments or a Promise of the event arguments. Indeed, Pebo is only calling
 `Promise.all()` and returning a Promise of the event arguments.
 
-Let's write another example, but this time we will log execution time our Pizzaiolo will prepare two pizzas `regina`:
+Let's write another example, but this time we will log execution durations and our Pizzaiolo will prepare two pizzas `regina`:
 
 *   for the first one, he will add ingredients one after another
 *   for the second one, he will not care about the order
@@ -350,8 +350,8 @@ fireConcurrently: 202ms                                   // The pizzaiollo last
 Which Promise implementation does Pebo use?
 ---
 
-Pebo come with 0 dependencies, but you can use it with your favorite Promise library using `Pebo.setPromise(myPromiseLib);`. If you want to use `bluebird`
-for example:
+**Pebo come with 0 dependencies**, but **you can use it with your favorite Promise library** using `Pebo.setPromise(myPromiseLib);`. If you want to use
+`bluebird` for example:
 
 ```javascript
 const bluebird = require('bluebird');
