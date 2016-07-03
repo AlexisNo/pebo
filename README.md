@@ -1,6 +1,11 @@
 Pebo
 ===
 
+[![Build Status](https://travis-ci.org/AlexisNo/pebo.svg?branch=master)](https://travis-ci.org/AlexisNo/pebo)
+[![bitHound Overall Score](https://www.bithound.io/github/AlexisNo/pebo/badges/score.svg)](https://www.bithound.io/github/AlexisNo/pebo)
+[![bitHound Dependencies](https://www.bithound.io/github/AlexisNo/pebo/badges/dependencies.svg)](https://www.bithound.io/github/AlexisNo/pebo/master/dependencies/npm)
+[![bitHound Code](https://www.bithound.io/github/AlexisNo/pebo/badges/code.svg)](https://www.bithound.io/github/AlexisNo/pebo)
+
 Pebo is a small JavaScript module that aims to provide an asynchronous friendly event mechanism.
 
 Usage
