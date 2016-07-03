@@ -1,14 +1,5 @@
 'use strict';
 
-process.on('uncaughtException', function(e) {
-  console.log(e);
-});
-
-process.on('unhandledRejection', r => {
-  console.log('Unhandled rejection');
-  console.log(r);
-});
-
 /**
  * Construct a emitter instance
  * @constructor
