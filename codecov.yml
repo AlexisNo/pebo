@@ -4,3 +4,5 @@ coverage:
   precision: 2
   round: down
   range: "50...100"
+  ignore:
+    - examples/*

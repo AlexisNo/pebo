@@ -1,0 +1,9 @@
+verbose: false
+instrumentation:
+  excludes: ['**/examples/**']
+reporting:
+  watermarks:
+    statements: [60, 80]
+    lines: [60, 80]
+    functions: [60, 80]
+    branches: [60, 80]
