@@ -7,5 +7,3 @@ node_js:
 script:
   - npm run test-ci
 #  - bithound check git@github.com:/AlexisNo/pebo
-after_success:
-  - bash <(curl -s https://codecov.io/bash)
