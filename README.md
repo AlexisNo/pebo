@@ -45,7 +45,9 @@ eventEmitter.fire('myEvent')
 Why would I want to use Pebo instead of EventEmitter?
 ---
 
-That's an excellent question. Thanks for asking it! It depends on what you want to do with events.
+That's an excellent question. Thanks for asking it! It depends on what you want to do with events, if you want to wait for the end asynchronous operation
+before continuing the execution and if you are interested in retrieving the result of listener Functions (more precisely, the alterations they should apply
+to the event arguments).
 
 Pebo is inspired by Node.js EventListener but Functions attached to an event must return the event's arguments (or a Promise of the event's arguments)
 eventually modified. Thereby, **listeners executions can be chained even if they run asynchronous code** and the portion of code firing an event can have
