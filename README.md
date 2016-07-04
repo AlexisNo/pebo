@@ -17,29 +17,39 @@ npm install pebo --save
 ```
 
 ```javascript
+// create a Pebo event emitter
 const Pebo = require('pebo');
-
-// Create a Pebo event emitter
 emitter = new Pebo();
 
 // add listeners to an event
-// a listener must return the event arguments (eventually modified) in an Array
+// a listener must return an Array containing the event arguments (eventually modified)
 emitter.when('myEvent', (arg1, arg2) => {
-  modifyArgsIfYouWantTo(arg1, arg2);
+  // alter arg1 and arg2 here
+  arg1.changed = true;
   return [arg1, arg2];
 });
 
-// a listener can execute asynchronous code an return the Promise of an array containing the event arguments (eventually modified)
+// a listener can execute asynchronous code an return the Promise of an Array containing the event arguments (eventually modified)
 emitter.when('myEvent', (arg1, arg2) => {
-  return doSomeAsyncStuffThatReturnsAPromiseOfArgs(arg1, arg2)
+  // We create a Promise manually, but in a real use case, you will probably use Promises from the libraries you
+  return new Promise((resolve, reject) => {
+    // setTimeout() is used to give an example of asynchronous execution
+    setTimeout(() => {
+      // alter arg1 and arg2 here
+      arg2.newAttribute = 'value'
+      resolve([arg1, arg2]);
+    }, 100);
+  });
 });
 
-eventEmitter.fire('myEvent')
+// emit a event and return a Promise of a array containing the event arguments, eventually modified by listeners
+// in this example, we pass two objects as arguments
+emitter.fire('myEvent', { changed: false }, {})
 .then(args => {
-  // retrieve the arguments modified by sync or async listeners
+  // access the arguments eventually modified by sync or async listeners
   console.log(args);
-  // [modifiedArg1, modifiedArg2]
-}
+  // [ { changed: true }, { newAttribute: 'value' } ]
+});
 ```
 
 Why would I want to use Pebo instead of EventEmitter?
@@ -65,17 +75,17 @@ From [the Node.js documentation about events](https://nodejs.org/api/events.html
 >Any values returned by the called listeners are ignored and will be discarded.
 
 So, it is not possible to access values returned by event listeners. But *it is possible to pass an object as an argument to an event*, and because JavaScript
-passes object arguments by reference, we are be able *to see the modifications applied on this object*. But if the modification is performed *asynchronously*,
+passes object arguments by reference, *we are able to see the modifications applied on this object*. But if the modification is performed *asynchronously*,
 we cannot know when it will be available.
 
-Let's write a simple example. First, we write a node module containing actions needed to make a pizza `margherita` or `regina`. Every action logs a message so
-we can see when it is executed. These messages also display the property `name` that will be set on the `EventEmitter`, so we can verify that the `this` keyword
-is set to reference the `EventEmitter` like described in [Node.js documentation](https://nodejs.org/api/events.html#events_passing_arguments_and_this_to_listeners).
+Let's write a simple example. First, we write a node module containing actions needed to make a pizza `margherita` or a pizza `regina`. Every action logs a
+message so we can see when it is executed. These messages also display the property `name` that will be set on the `EventEmitter`, so we can verify that the
+`this` keyword is set to reference the `EventEmitter` like described in [Node.js documentation](https://nodejs.org/api/events.html#events_passing_arguments_and_this_to_listeners).
 
-The event that will trigger these functions has two arguments:
+Events that will trigger these functions will be named `margherita` and `regina` and have two arguments:
 
-*   A string that we will concatenate with the name of the ingredient of the action
-*   An array that represents the pizza and contain the arguments.
+*   A `string` that will be concatenated with the name of the ingredient of the action
+*   An `Array` that represents the pizza and contains ingredients
 
 ```javascript
 module.exports = {
@@ -123,6 +133,7 @@ const actions = require('./event-emitter-actions');
 const EventEmitter = require('events');
 class Pizzaiolo extends EventEmitter {}
 const mario = new Pizzaiolo();
+// We give a "name" property to the Pizzaiolo to check the value of "this" in actions
 mario.name = 'Mario';
 
 // We associate various listener to our emitter
@@ -225,8 +236,8 @@ module.exports = {
 };
 ```
 
-Let's rewrite `Pizzaiolo` with Pebo. To avoid confusion, the equivalent of `on()` and `emit()` methods from EventEmitter are respectively named `when`
-and `fire`.
+Let's rewrite `Pizzaiolo` with Pebo. To avoid confusion, the equivalent of `on()` and `emit()` methods from EventEmitter are respectively named `when()`
+and `fire()` in Pebo.
 
 ```javascript
 const actions = require('./pebo-actions');
@@ -262,7 +273,7 @@ Inside Mario action addMozzarella()             // Actions are called and the `t
 Inside Mario async action addTomatoes()         // The log of addTomatoes() appears because Pebo is using Promises to execute asynchronous functions sequentially
 Inside Mario action addBasil()
 
-After emitting                                  // We retrieved the margherita with all its ingredients as soon as it's ready
+After emitting                                  // We retrieved the margherita with all its ingredients as soon as it is ready
   -Ingredients: - mozzarella - tomato - basil   // We even have the correct string of ingredients because modifications have been copied for each successive action
   -["mozzarella","tomatoes","basil"]
 ```
@@ -280,8 +291,8 @@ Note that in this case, the listeners do not need to return the event arguments 
 
 Let's write another example, but this time we will log execution durations and our Pizzaiolo will prepare two pizzas `regina`:
 
-*   for the first one, he will add ingredients one after another
-*   for the second one, he will not care about the order
+*   for the first one, the pizzaiolo will add ingredients one after another
+*   for the second one, the pizzaiolo will not care about the order
 
 ```javascript
 const actions = require('./pebo-actions');
@@ -346,7 +357,7 @@ Inside Mario async action addHam()                        // last ~100 ms
 After emitting
   -Ingredients:                                           // this time, The string argument does not contain the modifications like for the EventEmitter example
   -["mozzarella","tomatoes","mushrooms","ham"]            // the ingredients were not necessarily added in the right order, but the pizza was prepared much more faster
-fireConcurrently: 202ms                                   // The pizzaiollo last ~200 ms to make it, it is the duration of the longest action
+fireConcurrently: 202ms                                   // The pizzaiollo last ~200 ms to make this regina, it is the duration of the longest action
 ```
 
 Which Promise implementation does Pebo use?
@@ -356,12 +367,11 @@ Which Promise implementation does Pebo use?
 `bluebird` for example:
 
 ```javascript
-const bluebird = require('bluebird');
 const actions = require('./pebo-actions');
+const Pebo = require('pebo');
+Pebo.setPromise(require('bluebird'));
 
 // Let's create a Pebo event emitter
-const Pebo = require('pebo');
-Pebo.setPromise(bluebird);
 class Pizzaiolo extends Pebo {}
 const mario = new Pizzaiolo();
 mario.name = 'Mario';
@@ -413,4 +423,4 @@ After emitting
 What's next?
 ---
 
-Pebo will offer [more features from `EventEmitter`](https://nodejs.org/api/events.html#events_passing_arguments_and_this_to_listeners)
+Pebo will offer [more features inspired from `EventEmitter`](https://nodejs.org/api/events.html#events_passing_arguments_and_this_to_listeners)
