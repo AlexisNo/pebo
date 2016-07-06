@@ -36,7 +36,7 @@ emitter.when('myEvent', (arg1, arg2) => {
     // setTimeout() is used to give an example of asynchronous execution
     setTimeout(() => {
       // alter arg1 and arg2 here
-      arg2.newAttribute = 'value'
+      arg2.newAttribute = 'value';
       resolve([arg1, arg2]);
     }, 100);
   });
@@ -67,7 +67,7 @@ The following sections use the example of a `Pizzaiolo` event emitter that makes
 must be called like `addMozzarella()`, `addTomatoes()`, `addHam()` etc. The order of execution of these actions may be important. Some actions may execute
 asynchronous code.
 
-### How EventEmitter work
+### How EventEmitter works
 
 From [the Node.js documentation about events](https://nodejs.org/api/events.html#events_events)
 
