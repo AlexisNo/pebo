@@ -35,10 +35,20 @@ describe('A Pebo instance', function() {
          .when('regina', actions.addMushrooms);
   });
 
-  it('should emit an event and execute listeners sequencially', () => {
-    return mario.fire('margherita', 'Ingredients:', [])
+  it('should emit an event and execute listeners sequentially propagating responses from each listener', () => {
+    return mario.fireSequentiallyPropagatingResponses('margherita', 'Ingredients:', [])
     .then(args => {
       assert.equal(args[0], 'Ingredients: - mozzarella - tomato - basil', 'the first argument (string) is retrieved with modifications');
+      assert.equal(args[1][0], 'mozzarella', 'the modification of the first listener is retrieved');
+      assert.equal(args[1][1], 'tomatoes', 'the modification of the second listener is retrieved');
+      assert.equal(args[1][2], 'basil', 'the modification of the third listener is retrieved');
+    });
+  });
+
+  it('should emit an event and execute listeners sequentially', () => {
+    return mario.fireSequentially('margherita', 'Ingredients:', [])
+    .then(args => {
+      assert.equal(args[0], 'Ingredients:', 'the first argument (string) is retrieved with modifications');
       assert.equal(args[1][0], 'mozzarella', 'the modification of the first listener is retrieved');
       assert.equal(args[1][1], 'tomatoes', 'the modification of the second listener is retrieved');
       assert.equal(args[1][2], 'basil', 'the modification of the third listener is retrieved');
@@ -58,7 +68,7 @@ describe('A Pebo instance', function() {
 
   it('should be able to use a specific Promise library', () => {
     Pebo.setPromise(bluebird);
-    return mario.fire('margherita', 'Ingredients:', [])
+    return mario.fireSequentiallyPropagatingResponses('margherita', 'Ingredients:', [])
     .spread((ingredients, pizza) => {
       assert.equal(ingredients, 'Ingredients: - mozzarella - tomato - basil', 'the first argument (string) is retrieved with modifications');
       assert.equal(pizza[0], 'mozzarella', 'the modification of the first listener is retrieved');

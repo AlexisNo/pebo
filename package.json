@@ -1,6 +1,6 @@
 {
   "name": "pebo",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Pebo aims to provide an asynchronous friendly event mechanism",
   "main": "index.js",
   "directories": {
