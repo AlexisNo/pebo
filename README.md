@@ -22,11 +22,9 @@ const Pebo = require('pebo');
 emitter = new Pebo();
 
 // add listeners to an event
-// a listener must return an Array containing the event arguments (eventually modified)
 emitter.when('myEvent', (arg1, arg2) => {
   // alter arg1 and arg2 here
   arg1.changed = true;
-  return [arg1, arg2];
 });
 
 // a listener can execute asynchronous code an return the Promise of an Array containing the event arguments (eventually modified)
