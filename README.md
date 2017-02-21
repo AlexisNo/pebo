@@ -58,11 +58,12 @@ execution and if you are interested in retrieving the result of listener Functio
 apply to the event arguments).
 
 Pebo is inspired by Node.js EventListener but it **returns a `Promise` that resolves when all listeners executions are done**
-and the portion of code firing an event can have **access to the modified arguments**. That mean a Pebo listener that executes asynchronous
-code should return a `Promise`.
+and the portion of code firing an event can have **access to the modified arguments**. That means a Pebo listener that executes
+asynchronous code should return a `Promise`.
 
-The following sections use the example of a `Pizzaiolo` event emitter that makes pizzas. When a pizzaiolo "emits" a certain type of pizza,
-some actions must be called like `addMozzarella()`, `addTomatoes()`, `addHam()` etc. Some actions may execute asynchronous code.
+The following sections use the example of a `Pizzaiolo` event emitter that makes pizzas. When a pizzaiolo "emits" a certain type
+of pizza, some actions must be called like `addMozzarella()`, `addTomatoes()`, `addHam()` etc. Some actions may execute
+asynchronous code.
 
 ### How EventEmitter works
 
@@ -71,13 +72,15 @@ From [the Node.js documentation about events](https://nodejs.org/api/events.html
 >When the EventEmitter object emits an event, all of the Functions attached to that specific event are called synchronously.
 >Any values returned by the called listeners are ignored and will be discarded.
 
-So, it is not possible to access values returned by event listeners. But *it is possible to pass an object as an argument to an event*, and because JavaScript
-passes object arguments by reference, *we are able to see the modifications applied on this object*. But if the modification is performed *asynchronously*,
+So, it is not possible to access values returned by event listeners. But *it is possible to pass an object as an argument to an
+event*, and because JavaScript passes object arguments by reference, *we are able to see the modifications applied on this
+object*. But if the modification is performed *asynchronously*,
 we cannot know when it will be available.
 
-Let's write a simple example. First, we write a node module containing actions needed to make a pizza `margherita` or a pizza `regina`. Every action logs a
-message so we can see when it is executed. These messages also display the property `name` that will be set on the `EventEmitter`, so we can verify that the
-`this` keyword is set to reference the `EventEmitter` like described in [Node.js documentation](https://nodejs.org/api/events.html#events_passing_arguments_and_this_to_listeners).
+Let's write a simple example. First, we write a node module containing actions needed to make a pizza `margherita` or a pizza
+`regina`. Every action logs a message so we can see when it is executed. These messages also display the property `name` that
+will be set on the `EventEmitter`, so we can verify that the `this` keyword is set to reference the `EventEmitter` like 
+described in [Node.js documentation](https://nodejs.org/api/events.html#events_passing_arguments_and_this_to_listeners).
 
 Events that will trigger these functions will be named `margherita` and `regina` and have two arguments:
 
